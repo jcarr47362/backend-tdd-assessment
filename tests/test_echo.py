@@ -7,7 +7,7 @@ Students are expected to edit this module, to add more tests to run
 against the 'echo.py' program.
 """
 
-__author__ = "???"
+__author__ = "Jessica Woods"
 
 import sys
 import importlib
@@ -25,6 +25,7 @@ PKG_NAME = 'echo'
 # Students can use this class object in their code
 class Capturing(list):
     """Context Mgr helper for capturing stdout from a function call"""
+
     def __enter__(self):
         self._stdout = sys.stdout
         sys.stdout = self._stringio = StringIO()
@@ -47,7 +48,7 @@ def run_capture(pyfile, args=()):
     p = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
+    )
     stdout, stderr = p.communicate()
     stdout = stdout.decode().splitlines()
     stderr = stderr.decode().splitlines()
@@ -69,8 +70,8 @@ class TestEcho(unittest.TestCase):
         cls.funcs = {
             k: v for k, v in inspect.getmembers(
                 cls.module, inspect.isfunction
-                )
-            }
+            )
+        }
         # check the module for required functions
         assert "main" in cls.funcs, "Missing required function main()"
         assert "create_parser" in cls.funcs, "Missing required function create_parser()"
@@ -88,9 +89,15 @@ class TestEcho(unittest.TestCase):
             result, argparse.ArgumentParser,
             "create_parser() function is not returning a parser object")
 
-    #
-    # Students: add more parser tests here
-    #
+    def test_help(self):
+        """Check if usage output matches what is expected"""
+        process = subprocess.Popen(
+            ["python", "./echo.py", "-h"],
+            stdout=subprocess.PIPE)
+        stdout, _ = process.communicate()
+        with open('USAGE') as f:
+            usage = f.read()
+        self.assertEqual(stdout.decode(), usage)
 
     def test_echo(self):
         """Check if main() function prints anything at all"""
@@ -104,7 +111,7 @@ class TestEcho(unittest.TestCase):
         self.assertEqual(
             stdout[0], args[0],
             "The program is not performing simple echo"
-            )
+        )
 
     def test_lower_short(self):
         """Check if short option '-l' performs lowercasing"""
@@ -114,10 +121,25 @@ class TestEcho(unittest.TestCase):
         assert output, "The program did not print anything."
         self.assertEqual(output[0], "hello world")
 
-    #
-    # Students: add more cmd line options tests here.
-    #
+    def test_upper_short(self):
+        """Check if short option '-u' performs uppercasing"""
+        args = ["-u", "hello world"]
+        with Capturing() as output:
+            self.module.main(args)
+        assert output, "The program did not print anything."
+        self.assertEqual(output[0], "HELLO WORLD")
 
+    def test_upper_long(self):
+        args = ["--upper", "hello world"]
+        with Capturing() as output:
+            self.module.main(args)
+        assert output, "The program did not print anything."
+        self.assertEqual(output[0], "HELLO WORLD")
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_no_options(self):
+        self.test_simple_echo()
+    if __name__ == '__main__':
+        unittest.main()
+
+    def test_all_options(self):
+        args = ["-tul", "hello world"]
